@@ -41,6 +41,7 @@ PRICES = {
     'menu_1500_month': 5000,
     'menu_drying_week': 2000,
     'menu_drying_month': 5000,
+    'menu': 2000,
     'plan': 5000,
     'video_call': 1000,
     'mentoring': 10000,

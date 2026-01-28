@@ -61,7 +61,7 @@ async def show_profile(message: Message):
         ]
     )
 
-    await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+    await message.answer(text, reply_markup=keyboard, )
 
 
 DAYS_RU = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье']
@@ -212,7 +212,7 @@ async def purchase_history(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard, )
     await callback.answer()
 
 
@@ -256,5 +256,5 @@ async def back_to_profile(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard, )
     await callback.answer()

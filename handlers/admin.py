@@ -50,7 +50,7 @@ async def admin_panel(message: Message):
         ]
     )
 
-    await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+    await message.answer(text, reply_markup=keyboard)
 
 
 @router.callback_query(F.data == "admin_stats")
@@ -106,7 +106,7 @@ async def admin_statistics(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
 
@@ -141,7 +141,7 @@ async def admin_clients_list(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
 
@@ -177,7 +177,7 @@ async def admin_broadcast_menu(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
 
@@ -222,7 +222,7 @@ async def select_broadcast_segment(callback: CallbackQuery, state: FSMContext):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
 
@@ -267,7 +267,7 @@ async def receive_broadcast_message(message: Message, state: FSMContext):
         ]
     )
 
-    await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+    await message.answer(text, reply_markup=keyboard)
 
 
 @router.callback_query(F.data == "confirm_send_broadcast", BroadcastStates.confirm_broadcast)
@@ -314,7 +314,7 @@ async def send_broadcast(callback: CallbackQuery, state: FSMContext, bot: Bot):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
 
@@ -340,7 +340,7 @@ async def cancel_broadcast(callback: CallbackQuery, state: FSMContext):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer("Рассылка отменена")
 
 
@@ -359,7 +359,8 @@ async def admin_settings(callback: CallbackQuery):
 • Разовое занятие: {config.PRICES['single']}₽
 • Абонемент (одна группа): {config.PRICES['one_group']}₽
 • Абонемент (все группы): {config.PRICES['all_groups']}₽
-• Меню на похудение: {config.PRICES['menu']}₽
+• Меню (неделя): {config.PRICES['menu_1200_week']}₽
+• Меню (месяц): {config.PRICES['menu_1200_month']}₽
 • План тренировок: {config.PRICES['plan']}₽
 • Онлайн-тренировка: {config.PRICES['video_call']}₽
 • Наставничество: {config.PRICES['mentoring']}₽
@@ -376,7 +377,7 @@ async def admin_settings(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
 
@@ -400,7 +401,7 @@ async def back_to_admin(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
 
@@ -446,26 +447,104 @@ async def admin_confirm_payment(callback: CallbackQuery):
 
         await session.commit()
 
-    # Уведомляем пользователя
+    # Уведомляем пользователя с персонализированным cross-sell
     try:
-        if payment.payment_type == 'single':
-            single_keyboard = InlineKeyboardMarkup(
+        if payment.payment_type in ('one_group', 'all_groups'):
+            cross_sell_kb = InlineKeyboardMarkup(
                 inline_keyboard=[
                     [InlineKeyboardButton(text="📝 Записаться на тренировку", callback_data="book_start")],
+                    [InlineKeyboardButton(text="📋 Меню питания", callback_data="online_menu")],
+                    [InlineKeyboardButton(text="💪 План тренировок", callback_data="online_plan")],
+                ]
+            )
+            await callback.bot.send_message(
+                payment.user_id,
+                "✅ Абонемент активирован! Спасибо!\n\n"
+                "Запишись на ближайшую тренировку, а для лучшего результата "
+                "попробуй меню питания или план тренировок 👇",
+                reply_markup=cross_sell_kb
+            )
+
+        elif payment.payment_type == 'single':
+            cross_sell_kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="📝 Записаться на тренировку", callback_data="book_start")],
+                    [InlineKeyboardButton(text="💎 Узнать про абонемент", callback_data="studio_subscription")],
                 ]
             )
             await callback.bot.send_message(
                 payment.user_id,
                 "✅ Оплата разового занятия подтверждена! Спасибо!\n\n"
-                "Теперь выбери тренировку и запишись 👇",
-                reply_markup=single_keyboard
+                "Запишись на тренировку 👇\n"
+                "С абонементом выгоднее — от 3500₽/мес!",
+                reply_markup=cross_sell_kb
             )
+
+        elif payment.payment_type == 'plan':
+            cross_sell_kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="📋 Меню питания", callback_data="online_menu")],
+                    [InlineKeyboardButton(text="💎 Абонемент", callback_data="studio_subscription")],
+                ]
+            )
+            await callback.bot.send_message(
+                payment.user_id,
+                "✅ Оплата плана подтверждена! Спасибо!\n\n"
+                "Пришлю индивидуальный план в течение 24 часов.\n"
+                "Для максимального результата добавь меню питания 👇",
+                reply_markup=cross_sell_kb
+            )
+
+        elif payment.payment_type == 'video_call':
+            cross_sell_kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="💎 Абонемент", callback_data="studio_subscription")],
+                    [InlineKeyboardButton(text="💪 План тренировок", callback_data="online_plan")],
+                ]
+            )
+            await callback.bot.send_message(
+                payment.user_id,
+                "✅ Оплата онлайн-тренировки подтверждена! Спасибо!\n\n"
+                "Свяжусь с тобой для согласования времени.\n"
+                "Хочешь тренироваться регулярно? Посмотри абонемент 👇",
+                reply_markup=cross_sell_kb
+            )
+
+        elif payment.payment_type == 'mentoring':
+            cross_sell_kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="💎 Абонемент", callback_data="studio_subscription")],
+                    [InlineKeyboardButton(text="📝 Записаться на тренировку", callback_data="book_start")],
+                ]
+            )
+            await callback.bot.send_message(
+                payment.user_id,
+                "✅ Оплата наставничества подтверждена! Спасибо!\n\n"
+                "Свяжусь с тобой для начала работы.\n"
+                "Добавь абонемент для групповых тренировок в студии 👇",
+                reply_markup=cross_sell_kb
+            )
+
+        elif payment.payment_type and payment.payment_type.startswith('menu'):
+            # Для меню — базовое подтверждение, cross-sell после PDF
+            await callback.bot.send_message(
+                payment.user_id,
+                "✅ Оплата меню подтверждена! Спасибо!\n\n"
+                "Отправляю файл..."
+            )
+
         else:
             await callback.bot.send_message(
                 payment.user_id,
                 "✅ Твоя оплата подтверждена! Спасибо!",
-                reply_markup=main_keyboard()
             )
+
+        # Восстанавливаем нижнюю клавиатуру
+        await callback.bot.send_message(
+            payment.user_id,
+            "Выбирай, что тебя интересует 👇",
+            reply_markup=main_keyboard()
+        )
     except Exception as e:
         import logging
         logging.error(f"Ошибка уведомления пользователя: {e}")
@@ -528,6 +607,25 @@ async def admin_confirm_payment(callback: CallbackQuery):
             asyncio.create_task(
                 schedule_menu_retry(callback.bot, payment.user_id, menu_info['path'], menu_info['caption'])
             )
+
+    # Cross-sell после доставки меню
+    if payment.payment_type and payment.payment_type.startswith('menu'):
+        try:
+            menu_cross_sell_kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="💪 План тренировок", callback_data="online_plan")],
+                    [InlineKeyboardButton(text="💎 Абонемент", callback_data="studio_subscription")],
+                ]
+            )
+            await callback.bot.send_message(
+                payment.user_id,
+                "Для максимального результата добавь план тренировок "
+                "или абонемент на групповые занятия 👇",
+                reply_markup=menu_cross_sell_kb
+            )
+        except Exception as e:
+            import logging
+            logging.error(f"Ошибка отправки cross-sell после меню: {e}")
 
     await callback.message.edit_text(
         f"✅ Оплата #{payment_id} подтверждена ({payment.amount}₽)."

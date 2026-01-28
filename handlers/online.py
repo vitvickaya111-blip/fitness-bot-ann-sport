@@ -340,7 +340,6 @@ async def online_plan_handler(callback: CallbackQuery):
     await callback.message.edit_text(
         text,
         reply_markup=payment_methods(config.PRICES['plan'], 'plan'),
-        parse_mode="Markdown"
     )
     await callback.answer()
 
@@ -370,7 +369,6 @@ async def online_mentoring_handler(callback: CallbackQuery):
     await callback.message.edit_text(
         text,
         reply_markup=payment_methods(config.PRICES['mentoring'], 'mentoring'),
-        parse_mode="Markdown"
     )
     await callback.answer()
 
@@ -397,5 +395,5 @@ async def back_to_online(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()

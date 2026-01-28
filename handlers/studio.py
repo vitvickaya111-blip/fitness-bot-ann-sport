@@ -36,7 +36,7 @@ async def studio_services(message: Message):
         ]
     )
 
-    await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+    await message.answer(text, reply_markup=keyboard)
 
 
 @router.callback_query(F.data == "studio_schedule")
@@ -143,7 +143,7 @@ async def show_location(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
 
@@ -167,7 +167,7 @@ async def subscription_menu(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
 
@@ -198,7 +198,7 @@ async def subscription_one_group(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
 
@@ -248,7 +248,6 @@ async def select_specific_group(callback: CallbackQuery):
     await callback.message.edit_text(
         text,
         reply_markup=payment_methods(config.PRICES['one_group'], 'one_group'),
-        parse_mode="Markdown"
     )
     await callback.answer()
 
@@ -292,7 +291,6 @@ async def subscription_all_groups(callback: CallbackQuery):
     await callback.message.edit_text(
         text,
         reply_markup=payment_methods(config.PRICES['all_groups'], 'all_groups'),
-        parse_mode="Markdown"
     )
     await callback.answer()
 
@@ -322,7 +320,7 @@ async def single_visit_menu(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
 
@@ -366,7 +364,6 @@ async def select_training_type(callback: CallbackQuery):
     await callback.message.edit_text(
         text,
         reply_markup=payment_methods(config.PRICES['single'], 'single'),
-        parse_mode="Markdown"
     )
     await callback.answer()
 
@@ -471,10 +468,10 @@ async def back_to_studio(callback: CallbackQuery):
     )
 
     try:
-        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+        await callback.message.edit_text(text, reply_markup=keyboard)
     except Exception:
         await callback.message.delete()
-        await callback.message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+        await callback.message.answer(text, reply_markup=keyboard)
     await callback.answer()
 
 

@@ -13,6 +13,7 @@ from database import (
     check_user_booking,
     create_booking,
     cancel_booking,
+    get_active_subscription,
 )
 import config
 
@@ -447,6 +448,33 @@ async def book_confirm(callback: CallbackQuery, bot: Bot):
             await bot.send_message(admin_id, admin_text)
         except Exception:
             pass
+
+    # Cross-sell после записи
+    try:
+        subscription = await get_active_subscription(user_id)
+        if not subscription:
+            cross_sell_kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="💎 Купить абонемент", callback_data="studio_subscription")],
+                ]
+            )
+            await callback.message.answer(
+                "💡 С абонементом тренировки дешевле — от 3500₽/мес!",
+                reply_markup=cross_sell_kb
+            )
+        else:
+            cross_sell_kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="📋 Меню питания", callback_data="online_menu")],
+                    [InlineKeyboardButton(text="💪 План тренировок", callback_data="online_plan")],
+                ]
+            )
+            await callback.message.answer(
+                "💡 Дополни тренировки правильным питанием для лучшего результата!",
+                reply_markup=cross_sell_kb
+            )
+    except Exception:
+        pass
 
 
 # ─── Отмена записи ────────────────────────────────────────────────

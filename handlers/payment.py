@@ -59,7 +59,7 @@ async def pay_by_card(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
 
@@ -84,7 +84,7 @@ async def payment_confirmation_request(callback: CallbackQuery):
 Я подтвержу оплату в течение часа и активирую твою покупку! 🎉
     """
 
-    await callback.message.edit_text(text, parse_mode="Markdown")
+    await callback.message.edit_text(text)
     await callback.answer()
 
     # Определяем что купили
@@ -125,8 +125,7 @@ async def payment_confirmation_request(callback: CallbackQuery):
             await bot.send_message(
                 admin_id,
                 admin_text,
-                parse_mode="Markdown"
-            )
+                            )
         except Exception as e:
             print(f"Не удалось отправить админу {admin_id}: {e}")
 

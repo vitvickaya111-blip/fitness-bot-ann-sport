@@ -322,25 +322,25 @@ async def get_detailed_sales_stats():
 async def seed_trainings():
     """Заполнить таблицу Training 19 записями расписания (идемпотентно)"""
     schedule = [
-        # Силовая — тренер Анна
-        {"name": "Силовая", "trainer": "Анна", "day_of_week": 0, "time": "08:30", "max_participants": 28},
-        {"name": "Силовая", "trainer": "Анна", "day_of_week": 0, "time": "17:10", "max_participants": 28},
-        {"name": "Силовая", "trainer": "Анна", "day_of_week": 0, "time": "18:10", "max_participants": 28},
-        {"name": "Силовая", "trainer": "Анна", "day_of_week": 2, "time": "08:30", "max_participants": 28},
-        {"name": "Силовая", "trainer": "Анна", "day_of_week": 2, "time": "17:10", "max_participants": 28},
-        {"name": "Силовая", "trainer": "Анна", "day_of_week": 2, "time": "18:10", "max_participants": 28},
-        {"name": "Силовая", "trainer": "Анна", "day_of_week": 4, "time": "08:30", "max_participants": 28},
-        {"name": "Силовая", "trainer": "Анна", "day_of_week": 4, "time": "17:10", "max_participants": 28},
-        # Силовая — тренер Алена
-        {"name": "Силовая", "trainer": "Алена", "day_of_week": 0, "time": "19:10", "max_participants": 28},
-        {"name": "Силовая", "trainer": "Алена", "day_of_week": 0, "time": "20:10", "max_participants": 28},
-        {"name": "Силовая", "trainer": "Алена", "day_of_week": 2, "time": "19:10", "max_participants": 28},
-        {"name": "Силовая", "trainer": "Алена", "day_of_week": 2, "time": "20:10", "max_participants": 28},
-        {"name": "Силовая", "trainer": "Алена", "day_of_week": 4, "time": "19:10", "max_participants": 28},
-        # Пилатес — тренер Анна
-        {"name": "Пилатес", "trainer": "Анна", "day_of_week": 0, "time": "09:30", "max_participants": 28},
-        {"name": "Пилатес", "trainer": "Анна", "day_of_week": 2, "time": "09:30", "max_participants": 28},
-        {"name": "Пилатес", "trainer": "Анна", "day_of_week": 4, "time": "09:30", "max_participants": 28},
+        # Силовая тренировка — тренер Анна
+        {"name": "Силовая тренировка", "trainer": "Анна", "day_of_week": 0, "time": "08:30", "max_participants": 28},
+        {"name": "Силовая тренировка", "trainer": "Анна", "day_of_week": 0, "time": "17:10", "max_participants": 28},
+        {"name": "Силовая тренировка", "trainer": "Анна", "day_of_week": 0, "time": "18:10", "max_participants": 28},
+        {"name": "Силовая тренировка", "trainer": "Анна", "day_of_week": 2, "time": "08:30", "max_participants": 28},
+        {"name": "Силовая тренировка", "trainer": "Анна", "day_of_week": 2, "time": "17:10", "max_participants": 28},
+        {"name": "Силовая тренировка", "trainer": "Анна", "day_of_week": 2, "time": "18:10", "max_participants": 28},
+        {"name": "Силовая тренировка", "trainer": "Анна", "day_of_week": 4, "time": "08:30", "max_participants": 28},
+        {"name": "Силовая тренировка", "trainer": "Анна", "day_of_week": 4, "time": "17:10", "max_participants": 28},
+        # Силовая тренировка — тренер Алена
+        {"name": "Силовая тренировка", "trainer": "Алена", "day_of_week": 0, "time": "19:10", "max_participants": 28},
+        {"name": "Силовая тренировка", "trainer": "Алена", "day_of_week": 0, "time": "20:10", "max_participants": 28},
+        {"name": "Силовая тренировка", "trainer": "Алена", "day_of_week": 2, "time": "19:10", "max_participants": 28},
+        {"name": "Силовая тренировка", "trainer": "Алена", "day_of_week": 2, "time": "20:10", "max_participants": 28},
+        {"name": "Силовая тренировка", "trainer": "Алена", "day_of_week": 4, "time": "19:10", "max_participants": 28},
+        # Пилатес с роллом и досками Садху — тренер Анна
+        {"name": "Пилатес с роллом и досками Садху", "trainer": "Анна", "day_of_week": 0, "time": "09:30", "max_participants": 28},
+        {"name": "Пилатес с роллом и досками Садху", "trainer": "Анна", "day_of_week": 2, "time": "09:30", "max_participants": 28},
+        {"name": "Пилатес с роллом и досками Садху", "trainer": "Анна", "day_of_week": 4, "time": "09:30", "max_participants": 28},
         # Барре — тренер Анна
         {"name": "Барре", "trainer": "Анна", "day_of_week": 1, "time": "08:30", "max_participants": 28},
         {"name": "Барре", "trainer": "Анна", "day_of_week": 3, "time": "08:30", "max_participants": 28},
