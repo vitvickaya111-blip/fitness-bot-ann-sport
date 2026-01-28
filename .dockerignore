@@ -1,0 +1,66 @@
+# Git
+.git
+.gitignore
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Database (будет в volume)
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.venv
+venv
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github
+
+# Documentation
+*.md
+!README.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+.tmp
+*.log
+
+# Claude
+.claude
+.specify
+.mcp.json
+switch-mcp.sh
+
+# Node
+node_modules
+package*.json
+
+# Меню PDF (большой файл, если не нужен в контейнере)
+*.pdf

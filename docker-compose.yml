@@ -1,0 +1,77 @@
+services:
+  # Telegram бот
+  fitness-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fitness-bot
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      # Volume для базы данных
+      - bot-data:/app/data
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/bot.db
+    networks:
+      - fitness-network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "app=fitness-bot"
+      - "env=prod"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # Dozzle - мониторинг логов контейнеров
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOZZLE_LEVEL=info
+      - DOZZLE_TAILSIZE=500
+      - DOZZLE_FILTER=label=app=fitness-bot
+      - DOZZLE_NO_ANALYTICS=true
+    networks:
+      - fitness-network
+    labels:
+      - "app=dozzle"
+
+  # Watchtower - автоматическое обновление контейнеров
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_ROLLING_RESTART=true
+    networks:
+      - fitness-network
+
+networks:
+  fitness-network:
+    driver: bridge
+
+volumes:
+  bot-data:
+    driver: local
