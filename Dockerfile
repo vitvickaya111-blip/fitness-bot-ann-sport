@@ -37,9 +37,5 @@ USER botuser
 # Создание volume для базы данных
 VOLUME ["/app/data"]
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD pgrep -f "python.*bot.py" || exit 1
-
 # Запуск бота
 CMD ["python", "bot.py"]

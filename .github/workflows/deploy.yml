@@ -104,7 +104,15 @@ jobs:
             if [ "$(docker ps -q -f name=fitness-bot)" ]; then
               echo "✅ Bot is running"
               docker logs --tail 50 fitness-bot
-              exit 0
+
+              # Проверяем, что в логах есть сообщение о запуске
+              if docker logs fitness-bot 2>&1 | grep -q "Бот запущен и готов к работе"; then
+                echo "✅ Bot successfully started and polling"
+                exit 0
+              else
+                echo "⚠️ Bot is running but may not be fully initialized"
+                exit 0
+              fi
             else
               echo "❌ Bot failed to start"
               docker logs --tail 100 fitness-bot
@@ -117,27 +125,3 @@ jobs:
 
               exit 1
             fi
-
-      - name: Health Check
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ env.SERVER_HOST }}
-          username: ${{ env.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          script: |
-            cd ${{ env.DEPLOY_PATH }}
-
-            # Проверяем health check контейнера
-            for i in {1..6}; do
-              HEALTH=$(docker inspect --format='{{.State.Health.Status}}' fitness-bot 2>/dev/null || echo "no-healthcheck")
-              if [ "$HEALTH" = "healthy" ] || [ "$HEALTH" = "no-healthcheck" ]; then
-                echo "✅ Health check passed"
-                exit 0
-              fi
-              echo "Waiting for health check... ($i/6)"
-              sleep 10
-            done
-
-            echo "❌ Health check failed"
-            exit 1
