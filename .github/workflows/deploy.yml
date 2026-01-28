@@ -9,6 +9,9 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/fitness-bot
+  SERVER_HOST: 78.140.241.105
+  SERVER_USER: root
+  DEPLOY_PATH: /home/fitness-bot-ann-sport
 
 jobs:
   build-and-deploy:
@@ -53,15 +56,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Deploy to Server Server
+      - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
+          host: ${{ env.SERVER_HOST }}
+          username: ${{ env.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
           script: |
-            cd ${{ secrets.DEPLOY_PATH }}
+            cd ${{ env.DEPLOY_PATH }}
 
             # Логин в container registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
@@ -70,47 +73,47 @@ jobs:
             docker exec fitness-bot cp /app/data/bot.db /app/data/bot.db.backup || true
 
             # Остановка и удаление старых контейнеров
-            docker-compose -f docker-compose.yml down
+            docker compose down
 
             # Загрузка нового образа
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
             # Запуск с новым образом
-            docker-compose -f docker-compose.yml up -d
+            docker compose up -d
 
             # Очистка старых образов (оставляем последние 3)
             docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} --format "{{.ID}} {{.CreatedAt}}" | sort -rk 2 | awk 'NR>3{print $1}' | xargs -r docker rmi || true
 
             # Проверка статуса
-            docker-compose -f docker-compose.yml ps
+            docker compose ps
 
       - name: Verify Deployment
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
+          host: ${{ env.SERVER_HOST }}
+          username: ${{ env.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
           script: |
-            cd ${{ secrets.DEPLOY_PATH }}
+            cd ${{ env.DEPLOY_PATH }}
 
             # Ждем 15 секунд для старта контейнера
             sleep 15
 
             # Проверяем, что контейнер работает
             if [ "$(docker ps -q -f name=fitness-bot)" ]; then
-              echo "✅ Server bot is running"
+              echo "✅ Bot is running"
               docker logs --tail 50 fitness-bot
               exit 0
             else
-              echo "❌ Server bot failed to start"
+              echo "❌ Bot failed to start"
               docker logs --tail 100 fitness-bot
 
               # Откатываем к предыдущему образу
               echo "Rolling back to previous version..."
-              docker-compose -f docker-compose.yml down
+              docker compose down
               docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-              docker-compose -f docker-compose.yml up -d
+              docker compose up -d
 
               exit 1
             fi
@@ -118,12 +121,12 @@ jobs:
       - name: Health Check
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
+          host: ${{ env.SERVER_HOST }}
+          username: ${{ env.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
           script: |
-            cd ${{ secrets.DEPLOY_PATH }}
+            cd ${{ env.DEPLOY_PATH }}
 
             # Проверяем health check контейнера
             for i in {1..6}; do
@@ -138,38 +141,3 @@ jobs:
 
             echo "❌ Health check failed"
             exit 1
-
-      - name: Send Telegram notification on success
-        if: success()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          message: |
-            ✅ Server deployment successful!
-
-            Repository: ${{ github.repository }}
-            Branch: ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            Author: ${{ github.actor }}
-
-            Message: ${{ github.event.head_commit.message }}
-
-            🟢 Bot is now live!
-
-      - name: Send Telegram notification on failure
-        if: failure()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          message: |
-            🚨 PRODUCTION DEPLOYMENT FAILED! 🚨
-
-            Repository: ${{ github.repository }}
-            Branch: ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            Author: ${{ github.actor }}
-
-            ⚠️ Please check immediately!
-            GitHub Actions: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

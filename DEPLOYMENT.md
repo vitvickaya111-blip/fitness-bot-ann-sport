@@ -93,24 +93,19 @@ docker exec -it fitness-bot ls -la /app/data/
 
 ### 1. Настройка GitHub Secrets
 
-Перейдите в **Settings → Secrets and variables → Actions** вашего репозитория и добавьте следующие secrets:
+Перейдите в **Settings → Secrets and variables → Actions** вашего репозитория и добавьте следующий secret:
 
-#### Обязательные секреты для деплоя
-
-```
-SERVER_HOST=your-server-ip
-SERVER_USER=your-ssh-user
-SERVER_SSH_KEY=your-private-ssh-key
-SERVER_PORT=22
-DEPLOY_PATH=/home/your-user/fitness-bot
-```
-
-#### Telegram уведомления (опционально)
+#### Обязательный секрет для деплоя
 
 ```
-TELEGRAM_ADMIN_CHAT_ID=1258139980
-TELEGRAM_BOT_TOKEN=8380404463:AAHYJnUD5h19Ffc4v01x0m1mnBlzwKtNjpw
+SSH_PRIVATE_KEY=your-private-ssh-key
 ```
+
+Параметры сервера захардкожены в workflow:
+- **SERVER_HOST:** 78.140.241.105
+- **SERVER_USER:** root
+- **DEPLOY_PATH:** /home/fitness-bot-ann-sport
+- **SERVER_PORT:** 22
 
 ### 2. Генерация SSH ключа
 
@@ -119,13 +114,13 @@ TELEGRAM_BOT_TOKEN=8380404463:AAHYJnUD5h19Ffc4v01x0m1mnBlzwKtNjpw
 ssh-keygen -t ed25519 -C "github-actions@fitness-bot" -f ~/.ssh/fitness-bot-deploy
 
 # Копирование публичного ключа на сервер
-ssh-copy-id -i ~/.ssh/fitness-bot-deploy.pub user@your-server-ip
+ssh-copy-id -i ~/.ssh/fitness-bot-deploy.pub root@78.140.241.105
 
 # Скопировать приватный ключ для GitHub Secret
 cat ~/.ssh/fitness-bot-deploy
 ```
 
-Скопируйте **весь вывод** (включая `-----BEGIN` и `-----END`) и вставьте в GitHub Secret `SERVER_SSH_KEY`.
+Скопируйте **весь вывод** (включая `-----BEGIN` и `-----END`) и вставьте в GitHub Secret `SSH_PRIVATE_KEY`.
 
 ### 3. Тестирование автоматического деплоя
 
@@ -144,7 +139,7 @@ git push origin main
 1. Перейдите в **Actions** на GitHub
 2. Откройте последний запуск workflow
 3. Следите за логами каждого шага
-4. При успешном деплое получите уведомление в Telegram
+4. При успешном деплое бот автоматически перезапустится
 
 ---
 
@@ -180,9 +175,9 @@ docker compose version
 ### 2. Подготовка директории на сервере
 
 ```bash
-# Создание директории для проекта
-mkdir -p ~/fitness-bot
-cd ~/fitness-bot
+# Создание директории для проекта (точный путь из workflow)
+mkdir -p /home/fitness-bot-ann-sport
+cd /home/fitness-bot-ann-sport
 
 # Клонирование репозитория ИЛИ создание файлов вручную
 git clone https://github.com/your-username/fitness-bot-ann-sport.git .
@@ -208,7 +203,7 @@ CHANNEL_USERNAME=@OFFICIAL_AN_SPORT
 ### 4. Первый запуск на сервере
 
 ```bash
-cd ~/fitness-bot
+cd /home/fitness-bot-ann-sport
 docker compose up -d
 ```
 
@@ -231,7 +226,7 @@ docker exec -it fitness-bot ls -la /app/data/
 
 ### Dozzle - веб-интерфейс для логов
 
-**URL:** `http://your-server-ip:8080`
+**URL:** `http://78.140.241.105:8080`
 
 Dozzle предоставляет:
 - ✅ Просмотр логов в реальном времени
