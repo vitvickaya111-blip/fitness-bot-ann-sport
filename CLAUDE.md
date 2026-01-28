@@ -138,12 +138,9 @@ Follow command-specific instructions. See `docs/Agents Ecosystem/AGENT-ORCHESTRA
 - Use Supabase MCP when `.mcp.json` includes supabase server
 
 **MCP Configuration**:
-- UNIFIED (`.mcp.json`): All servers with auto-optimization
-  - Claude Code automatically applies defer_loading when needed
-  - Includes: context7, sequential-thinking, supabase, playwright, shadcn, serena
-  - 85% context reduction via MCP Tool Search (automatic, >10K tokens threshold)
-  - Uses env vars for Supabase (set `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN` if needed)
-- Legacy configs available in `mcp/` for reference
+- BASE (`.mcp.base.json`): context7 + sequential-thinking (~600 tokens)
+- FULL (`.mcp.full.json`): + supabase + playwright + n8n + shadcn (~5000 tokens)
+- Switch: `./switch-mcp.sh`
 
 ---
 
@@ -203,3 +200,17 @@ See `.claude/docs/beads-quickstart.md` for full reference.
 - Quality gates: `docs/Agents Ecosystem/QUALITY-GATES-SPECIFICATION.md`
 - Report templates: `docs/Agents Ecosystem/REPORT-TEMPLATE-STANDARD.md`
 - **Beads quickstart**: `.claude/docs/beads-quickstart.md`
+
+
+## Important rules: 
+
+### AUTONOMOUS MODE
+
+When working on any tasks: 
+- Create/modify files without asking 
+- Run commands without confirmation 
+- Read project files as needed
+- Make commits automatically
+- Continue until task completion 
+- Only ask if CRITICAL ambiguity exists
+User prefers autonomous execution.
