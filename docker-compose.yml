@@ -12,6 +12,7 @@ services:
     environment:
       - ENVIRONMENT=production
       - DATABASE_URL=sqlite+aiosqlite:////app/data/bot.db
+      - DATA_DIR=/app/data
     networks:
       - fitness-network
     labels:

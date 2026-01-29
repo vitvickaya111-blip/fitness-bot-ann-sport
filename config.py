@@ -53,7 +53,8 @@ PRICES = {
     'renewal_all': 4000,
 }
 
-PRICES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'prices.json')
+DATA_DIR = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
+PRICES_FILE = os.path.join(DATA_DIR, 'prices.json')
 
 
 def load_prices():
@@ -75,18 +76,94 @@ def save_prices():
 
 load_prices()
 
-# Расписание
+# Расписание (структурированный формат)
 SCHEDULE = {
-    "monday": "🔘 *ПОНЕДЕЛЬНИК*\n\n🏃‍♀️ *Силовые тренировки*\n👩‍🏫 Тренер Анна:\n✅ Группа 1 — 8:30\n✅ Группа 2 — 17:10\n✅ Группа 3 — 18:10\n👩‍🏫 Тренер Алена:\n✅ 19:10\n✅ 20:10\n\n🧘‍♀️ *Пилатес*\n✅ 9:30 - Анна",
-    "tuesday": "🔘 *ВТОРНИК*\n\n🏃‍♀️ *Барре*\n✅ 8:30 - Анна",
-    "wednesday": "🔘 *СРЕДА*\n\n🏃‍♀️ *Силовые тренировки*\n👩‍🏫 Тренер Анна:\n✅ Группа 1 — 8:30\n✅ Группа 2 — 17:10\n✅ Группа 3 — 18:10\n👩‍🏫 Тренер Алена:\n✅ 19:10\n✅ 20:10\n\n🧘‍♀️ *Пилатес*\n✅ 9:30 - Анна",
-    "thursday": "🔘 *ЧЕТВЕРГ*\n\n🏃‍♀️ *Барре*\n✅ 8:30 - Анна",
-    "friday": "🔘 *ПЯТНИЦА*\n\n🏃‍♀️ *Силовые тренировки*\n👩‍🏫 Тренер Анна:\n✅ Группа 1 — 8:30\n✅ Группа 2, 3 — 17:10\n👩‍🏫 Тренер Алена:\n✅ 19:10\n\n🧘‍♀️ *Пилатес*\n✅ 9:30 - Анна",
-    "saturday": "🔘 *СУББОТА*\n\n🏃‍♀️ *Барре*\n✅ 10:00 - Анна",
-    "sunday": "🔘 *ВОСКРЕСЕНЬЕ*\n\n🌴 Выходной день\nВосстанавливаемся и набираемся сил! 💪",
+    "monday": [
+        {"type": "Силовая", "trainer": "Анна", "times": ["8:30", "17:10", "18:10"]},
+        {"type": "Силовая", "trainer": "Алена", "times": ["19:10", "20:10"]},
+        {"type": "Пилатес", "trainer": "Анна", "times": ["9:30"]},
+    ],
+    "tuesday": [
+        {"type": "Барре", "trainer": "Анна", "times": ["8:30"]},
+    ],
+    "wednesday": [
+        {"type": "Силовая", "trainer": "Анна", "times": ["8:30", "17:10", "18:10"]},
+        {"type": "Силовая", "trainer": "Алена", "times": ["19:10", "20:10"]},
+        {"type": "Пилатес", "trainer": "Анна", "times": ["9:30"]},
+    ],
+    "thursday": [
+        {"type": "Барре", "trainer": "Анна", "times": ["8:30"]},
+    ],
+    "friday": [
+        {"type": "Силовая", "trainer": "Анна", "times": ["8:30", "17:10"]},
+        {"type": "Силовая", "trainer": "Алена", "times": ["18:10"]},
+        {"type": "Пилатес", "trainer": "Анна", "times": ["9:30"]},
+    ],
+    "saturday": [
+        {"type": "Барре", "trainer": "Анна", "times": ["10:00"]},
+    ],
+    "sunday": [],
 }
 
-SCHEDULE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'schedule.json')
+DAY_TITLES = {
+    "monday": "ПОНЕДЕЛЬНИК",
+    "tuesday": "ВТОРНИК",
+    "wednesday": "СРЕДА",
+    "thursday": "ЧЕТВЕРГ",
+    "friday": "ПЯТНИЦА",
+    "saturday": "СУББОТА",
+    "sunday": "ВОСКРЕСЕНЬЕ",
+}
+
+TRAINING_EMOJIS = {
+    "Силовая": "🏃‍♀️",
+    "Пилатес": "🧘‍♀️",
+    "Барре": "🏃‍♀️",
+}
+
+
+def format_day_schedule(day):
+    """Генерирует текстовое представление дня из структуры"""
+    title = DAY_TITLES.get(day, day.upper())
+    trainings = SCHEDULE.get(day, [])
+
+    if not trainings:
+        return f"🔘 *{title}*\n\n🌴 Выходной день\nВосстанавливаемся и набираемся сил! 💪"
+
+    lines = [f"🔘 *{title}*\n"]
+
+    # Группируем по типу тренировки
+    grouped = {}
+    for t in trainings:
+        grouped.setdefault(t["type"], []).append(t)
+
+    for training_type, entries in grouped.items():
+        emoji = TRAINING_EMOJIS.get(training_type, "🏃‍♀️")
+        lines.append(f"{emoji} *{training_type}*")
+
+        if len(entries) == 1 and len(entries[0]["times"]) == 1:
+            lines.append(f"✅ {entries[0]['times'][0]} - {entries[0]['trainer']}")
+        else:
+            for entry in entries:
+                lines.append(f"👩‍🏫 Тренер {entry['trainer']}:")
+                for time in entry["times"]:
+                    lines.append(f"✅ {time}")
+
+        lines.append("")
+
+    return "\n".join(lines).rstrip()
+
+
+def format_full_schedule():
+    """Генерирует полное расписание для показа"""
+    days_order = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+    parts = ["📅 *РАСПИСАНИЕ ТРЕНИРОВОК*\n\n📍 г. Новотроицк, пр. Комсомольский 3 (2 этаж)\n"]
+    for day in days_order:
+        parts.append(format_day_schedule(day))
+    parts.append("\n📞 Анна: @\\_an\\_sport\\_\n📞 Алена: +7 961 908 0598")
+    return "\n━━━━━━━━━━━━━━━━━━━\n".join(parts)
+
+SCHEDULE_FILE = os.path.join(DATA_DIR, 'schedule.json')
 
 
 def load_schedule():
@@ -95,7 +172,10 @@ def load_schedule():
         try:
             with open(SCHEDULE_FILE, 'r', encoding='utf-8') as f:
                 saved = json.load(f)
-            SCHEDULE.update(saved)
+            # Проверяем формат: если значение — строка, это старый формат, пропускаем
+            for key, val in saved.items():
+                if isinstance(val, list):
+                    SCHEDULE[key] = val
         except (json.JSONDecodeError, IOError):
             pass
 
