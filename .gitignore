@@ -22,3 +22,12 @@ node_modules/
 
 # Temporary
 .tmp/
+
+# Claude Code / MCP
+.claude/
+.specify/
+.mcp.json
+switch-mcp.sh
+index.js
+mcp/
+package.json
