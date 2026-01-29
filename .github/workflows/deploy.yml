@@ -71,7 +71,8 @@ jobs:
 
             # Обновление данных карты в .env
             sed -i 's/^CARD_HOLDER=.*/CARD_HOLDER=Anna Deruzhinskay/' .env
-            sed -i 's/^CARD_NUMBER=.*/CARD_NUMBER=2204320362182174/' .env
+            sed -i 's/^CARD_NUMBER=.*/CARD_NUMBER=2204240286018421/' .env
+            sed -i 's/^ADMIN_PHONE=.*/ADMIN_PHONE=+79619169150/' .env
 
             # Логин в container registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
