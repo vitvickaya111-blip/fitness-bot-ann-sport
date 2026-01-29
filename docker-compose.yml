@@ -1,9 +1,7 @@
 services:
   # Telegram бот
   fitness-bot:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/vitvickaya111-blip/fitness-bot-ann-sport/fitness-bot:latest
     container_name: fitness-bot
     restart: always
     env_file:
