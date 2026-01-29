@@ -1,3 +1,4 @@
+import logging
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 from sqlalchemy import select, update
@@ -6,6 +7,7 @@ from database import async_session, Payment
 from keyboards.main import main_keyboard
 import config
 
+logger = logging.getLogger(__name__)
 router = Router()
 
 
@@ -120,6 +122,8 @@ async def receive_payment_screenshot(message: Message):
     """Пользователь прислал скриншот оплаты (фото) — только в личных сообщениях"""
     from bot import bot
 
+    logger.info(f"[SCREENSHOT] Получено фото от user_id={message.from_user.id} (@{message.from_user.username})")
+
     # Находим последний pending-платёж пользователя
     async with async_session() as session:
         result = await session.execute(
@@ -132,6 +136,7 @@ async def receive_payment_screenshot(message: Message):
 
     # Если нет pending-платежа — просим выбрать покупку заново
     if not payment:
+        logger.warning(f"[SCREENSHOT] Нет pending-платежа для user_id={message.from_user.id}")
         await message.answer(
             "⚠️ Нет активной покупки.\n\n"
             "Сначала выбери товар и нажми «Оплатить по реквизитам», "
@@ -139,6 +144,8 @@ async def receive_payment_screenshot(message: Message):
             reply_markup=main_keyboard()
         )
         return
+
+    logger.info(f"[SCREENSHOT] Найден платёж id={payment.id}, amount={payment.amount}, type={payment.payment_type}")
 
     admin_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -155,6 +162,7 @@ async def receive_payment_screenshot(message: Message):
         f"💰 Сумма: {int(payment.amount)}₽"
     )
 
+    logger.info(f"[SCREENSHOT] Отправляю админам: {config.ADMIN_IDS}")
     for admin_id in config.ADMIN_IDS:
         try:
             await message.forward(admin_id)
@@ -163,8 +171,9 @@ async def receive_payment_screenshot(message: Message):
                 admin_text,
                 reply_markup=admin_keyboard
             )
+            logger.info(f"[SCREENSHOT] Успешно отправлено админу {admin_id}")
         except Exception as e:
-            print(f"Не удалось переслать админу {admin_id}: {e}")
+            logger.error(f"[SCREENSHOT] Ошибка отправки админу {admin_id}: {e}")
 
     await message.answer(
         "✅ Скриншот получен!\n\n"
