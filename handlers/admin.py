@@ -11,6 +11,10 @@ from utils.scheduler import schedule_menu_retry, schedule_video_funnel
 class BroadcastStates(StatesGroup):
     waiting_for_message = State()
     confirm_broadcast = State()
+
+
+class PriceEditStates(StatesGroup):
+    waiting_for_price = State()
 from keyboards.main import main_keyboard
 from sqlalchemy import select
 from datetime import datetime
@@ -419,41 +423,113 @@ async def cancel_broadcast(callback: CallbackQuery, state: FSMContext):
     await callback.answer("Рассылка отменена")
 
 
+PRICE_NAMES = {
+    'single': 'Разовое занятие',
+    'one_group': 'Абонемент (одна группа)',
+    'all_groups': 'Абонемент (все группы)',
+    'renewal_one': 'Продление (одна группа)',
+    'renewal_all': 'Продление (все группы)',
+    'menu': 'Меню на похудение',
+    'menu_1200_week': 'Меню 1200 ккал (неделя)',
+    'menu_1200_month': 'Меню 1200 ккал (месяц)',
+    'menu_1500_week': 'Меню 1500 ккал (неделя)',
+    'menu_1500_month': 'Меню 1500 ккал (месяц)',
+    'menu_drying_week': 'Меню на сушку (неделя)',
+    'menu_drying_month': 'Меню на сушку (месяц)',
+    'plan': 'План тренировок',
+    'video_call': 'Онлайн-тренировка',
+    'mentoring': 'Наставничество',
+}
+
+
 @router.callback_query(F.data == "admin_settings")
 async def admin_settings(callback: CallbackQuery):
-    """Настройки бота"""
+    """Настройки бота — список цен с кнопками редактирования"""
 
     if not is_admin(callback.from_user.id):
         await callback.answer("❌ Доступ запрещён", show_alert=True)
         return
 
-    text = f"""
-⚙️ НАСТРОЙКИ
+    text = "⚙️ НАСТРОЙКИ\n\n💰 Нажми на цену, чтобы изменить:\n"
 
-💰 Текущие цены:
-• Разовое занятие: {config.PRICES['single']}₽
-• Абонемент (одна группа): {config.PRICES['one_group']}₽
-• Абонемент (все группы): {config.PRICES['all_groups']}₽
-• Меню (неделя): {config.PRICES['menu_1200_week']}₽
-• Меню (месяц): {config.PRICES['menu_1200_month']}₽
-• План тренировок: {config.PRICES['plan']}₽
-• Онлайн-тренировка: {config.PRICES['video_call']}₽
-• Наставничество: {config.PRICES['mentoring']}₽
+    buttons = []
+    for key, name in PRICE_NAMES.items():
+        price = config.PRICES.get(key, 0)
+        buttons.append([InlineKeyboardButton(
+            text=f"💰 {name}: {price}₽",
+            callback_data=f"price_edit:{key}"
+        )])
 
-👥 Админы:
-• ID: {', '.join(map(str, config.ADMIN_IDS))}
+    buttons.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="back_admin")])
 
-🚧 Изменение настроек в разработке...
-    """
+    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.edit_text(text, reply_markup=keyboard)
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("price_edit:"))
+async def price_edit_start(callback: CallbackQuery, state: FSMContext):
+    """Начало редактирования цены"""
+
+    if not is_admin(callback.from_user.id):
+        await callback.answer("❌ Доступ запрещён", show_alert=True)
+        return
+
+    key = callback.data.split(":")[1]
+    name = PRICE_NAMES.get(key, key)
+    current = config.PRICES.get(key, 0)
+
+    await state.set_state(PriceEditStates.waiting_for_price)
+    await state.update_data(price_key=key)
+
+    text = (
+        f"✏️ Изменение цены\n\n"
+        f"📦 {name}\n"
+        f"💰 Текущая цена: {current}₽\n\n"
+        f"Введи новую цену (число):"
+    )
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_admin")]
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="admin_settings")]
         ]
     )
 
     await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
+
+
+@router.message(PriceEditStates.waiting_for_price)
+async def price_edit_receive(message: Message, state: FSMContext):
+    """Получение новой цены"""
+
+    if not is_admin(message.from_user.id):
+        return
+
+    text = message.text.strip()
+    try:
+        new_price = int(text)
+        if new_price < 0:
+            raise ValueError
+    except ValueError:
+        await message.answer("❌ Введи корректное положительное число.")
+        return
+
+    data = await state.get_data()
+    key = data['price_key']
+    name = PRICE_NAMES.get(key, key)
+    old_price = config.PRICES.get(key, 0)
+
+    config.PRICES[key] = new_price
+    config.save_prices()
+
+    await state.clear()
+
+    await message.answer(
+        f"✅ Цена обновлена!\n\n"
+        f"📦 {name}\n"
+        f"💰 {old_price}₽ → {new_price}₽"
+    )
 
 
 @router.callback_query(F.data == "back_admin")
@@ -730,7 +806,8 @@ async def admin_reject_payment(callback: CallbackQuery):
                     "К сожалению, оплата не прошла 😔\n\n"
                     "Не переживай — такое бывает! Попробуй оплатить ещё раз, "
                     "и если что-то не получится, мы обязательно поможем 🤗",
-                    reply_markup=main_keyboard()
+                    reply_markup=main_keyboard(),
+                    parse_mode="Markdown"
                 )
             except Exception as e:
                 print(f"Ошибка уведомления пользователя: {e}")

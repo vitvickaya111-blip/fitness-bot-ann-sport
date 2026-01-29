@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -51,6 +52,28 @@ PRICES = {
     'renewal_one': 2700,
     'renewal_all': 4000,
 }
+
+PRICES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'prices.json')
+
+
+def load_prices():
+    """Загрузить цены из JSON-файла поверх дефолтов"""
+    if os.path.exists(PRICES_FILE):
+        try:
+            with open(PRICES_FILE, 'r') as f:
+                saved = json.load(f)
+            PRICES.update(saved)
+        except (json.JSONDecodeError, IOError):
+            pass
+
+
+def save_prices():
+    """Сохранить текущие цены в JSON-файл"""
+    with open(PRICES_FILE, 'w') as f:
+        json.dump(PRICES, f, ensure_ascii=False, indent=2)
+
+
+load_prices()
 
 # База данных
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
