@@ -31,3 +31,4 @@ switch-mcp.sh
 index.js
 mcp/
 package.json
+" Edit .env with your BOT_TOKEN and ADMIN_ID"
