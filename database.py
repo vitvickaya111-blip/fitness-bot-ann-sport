@@ -126,7 +126,7 @@ async def get_active_subscription(user_id: int):
             select(Subscription).where(
                 Subscription.user_id == user_id,
                 Subscription.is_active == True
-            )
+            ).order_by(Subscription.end_date.desc()).limit(1)
         )
         sub = result.scalar_one_or_none()
         if sub:
