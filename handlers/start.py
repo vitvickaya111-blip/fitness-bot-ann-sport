@@ -478,3 +478,12 @@ async def back_to_main_menu(callback: CallbackQuery):
     await callback.message.delete()
     await show_main_menu(callback.message)
     await callback.answer()
+
+
+@router.message()
+async def fallback_handler(message: Message):
+    """Обработка любых текстовых сообщений, не совпавших с кнопками"""
+    await message.answer(
+        "Выбери действие из меню 👇",
+        reply_markup=main_keyboard()
+    )

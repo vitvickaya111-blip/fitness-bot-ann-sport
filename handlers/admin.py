@@ -542,7 +542,7 @@ async def admin_confirm_payment(callback: CallbackQuery):
         # Восстанавливаем нижнюю клавиатуру
         await callback.bot.send_message(
             payment.user_id,
-            "Выбирай, что тебя интересует 👇",
+            "Выбирай, что тебя интересует 👆",
             reply_markup=main_keyboard()
         )
     except Exception as e:

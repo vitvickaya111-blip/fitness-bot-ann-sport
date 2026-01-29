@@ -54,14 +54,14 @@ async def on_shutdown():
 
 async def main():
     """Главная функция"""
-    # Регистрация роутеров
-    dp.include_router(start.router)
+    # Регистрация роутеров (start последним — содержит fallback-обработчик)
     dp.include_router(online.router)
     dp.include_router(studio.router)
     dp.include_router(profile.router)
     dp.include_router(booking.router)
     dp.include_router(payment.router)
     dp.include_router(admin.router)
+    dp.include_router(start.router)
 
     # Запуск бота
     dp.startup.register(on_startup)
