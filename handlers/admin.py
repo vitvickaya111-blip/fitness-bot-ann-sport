@@ -15,6 +15,10 @@ class BroadcastStates(StatesGroup):
 
 class PriceEditStates(StatesGroup):
     waiting_for_price = State()
+
+
+class ScheduleEditStates(StatesGroup):
+    waiting_for_text = State()
 from keyboards.main import main_keyboard
 from sqlalchemy import select
 from datetime import datetime
@@ -450,9 +454,12 @@ async def admin_settings(callback: CallbackQuery):
         await callback.answer("❌ Доступ запрещён", show_alert=True)
         return
 
-    text = "⚙️ НАСТРОЙКИ\n\n💰 Нажми на цену, чтобы изменить:\n"
+    text = "⚙️ НАСТРОЙКИ\n\nВыбери раздел:\n"
 
-    buttons = []
+    buttons = [
+        [InlineKeyboardButton(text="📅 Расписание", callback_data="admin_schedule")],
+    ]
+
     for key, name in PRICE_NAMES.items():
         price = config.PRICES.get(key, 0)
         buttons.append([InlineKeyboardButton(
@@ -529,6 +536,91 @@ async def price_edit_receive(message: Message, state: FSMContext):
         f"✅ Цена обновлена!\n\n"
         f"📦 {name}\n"
         f"💰 {old_price}₽ → {new_price}₽"
+    )
+
+
+DAY_NAMES = {
+    'monday': 'Понедельник',
+    'tuesday': 'Вторник',
+    'wednesday': 'Среда',
+    'thursday': 'Четверг',
+    'friday': 'Пятница',
+    'saturday': 'Суббота',
+    'sunday': 'Воскресенье',
+}
+
+
+@router.callback_query(F.data == "admin_schedule")
+async def admin_schedule(callback: CallbackQuery):
+    """Меню редактирования расписания"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("❌ Доступ запрещён", show_alert=True)
+        return
+
+    text = "📅 РАСПИСАНИЕ\n\nВыбери день для редактирования:\n"
+
+    buttons = []
+    for key, name in DAY_NAMES.items():
+        buttons.append([InlineKeyboardButton(
+            text=f"📅 {name}",
+            callback_data=f"sched_edit:{key}"
+        )])
+    buttons.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_settings")])
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.edit_text(text, reply_markup=keyboard)
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("sched_edit:"))
+async def schedule_edit_start(callback: CallbackQuery, state: FSMContext):
+    """Начало редактирования расписания для дня"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("❌ Доступ запрещён", show_alert=True)
+        return
+
+    day = callback.data.split(":")[1]
+    name = DAY_NAMES.get(day, day)
+    current = config.SCHEDULE.get(day, "(пусто)")
+
+    await state.set_state(ScheduleEditStates.waiting_for_text)
+    await state.update_data(schedule_day=day)
+
+    text = (
+        f"✏️ Редактирование: {name}\n\n"
+        f"📋 Текущий текст:\n{current}\n\n"
+        f"Введи новый текст расписания для этого дня:"
+    )
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="admin_schedule")]
+        ]
+    )
+
+    await callback.message.edit_text(text, reply_markup=keyboard)
+    await callback.answer()
+
+
+@router.message(ScheduleEditStates.waiting_for_text)
+async def schedule_edit_receive(message: Message, state: FSMContext):
+    """Получение нового текста расписания"""
+    if not is_admin(message.from_user.id):
+        return
+
+    data = await state.get_data()
+    day = data['schedule_day']
+    name = DAY_NAMES.get(day, day)
+
+    config.SCHEDULE[day] = message.text.strip()
+    config.save_schedule()
+
+    await state.clear()
+
+    await message.answer(
+        f"✅ Расписание обновлено!\n\n"
+        f"📅 {name}\n"
+        f"📋 Новый текст:\n{config.SCHEDULE[day]}"
     )
 
 

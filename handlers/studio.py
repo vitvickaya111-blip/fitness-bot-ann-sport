@@ -41,28 +41,20 @@ async def studio_services(message: Message):
 
 @router.callback_query(F.data == "studio_schedule")
 async def show_schedule(callback: CallbackQuery):
-    """Расписание тренировок — 2 фото + кнопки подробнее"""
+    """Расписание тренировок — текстом из config.SCHEDULE"""
     await callback.answer()
-    await callback.message.delete()
 
-    # Отправляем фото расписания альбомом
-    schedule_1 = os.path.join(SCHEDULE_IMAGES_DIR, 'schedule_1.jpeg')
-    schedule_2 = os.path.join(SCHEDULE_IMAGES_DIR, 'schedule_2.jpeg')
-    strength = os.path.join(SCHEDULE_IMAGES_DIR, 'strength.jpeg')
-    alena = os.path.join(SCHEDULE_IMAGES_DIR, 'alena.jpeg')
+    # Собираем текст расписания из всех дней
+    days_order = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+    schedule_parts = ["📅 *РАСПИСАНИЕ ТРЕНИРОВОК*\n\n📍 г. Новотроицк, пр. Комсомольский 3 (2 этаж)\n"]
+    for day in days_order:
+        day_text = config.SCHEDULE.get(day, "")
+        if day_text:
+            schedule_parts.append(day_text)
+    schedule_parts.append("\n📞 Анна: @\\_an\\_sport\\_\n📞 Алена: +7 961 908 0598")
 
-    media = [
-        InputMediaPhoto(
-            media=FSInputFile(schedule_1),
-            caption="📅 РАСПИСАНИЕ ТРЕНИРОВОК\n\n📍 г.Новотроицк, пр.Комсомольский 3 (2 этаж)"
-        ),
-        InputMediaPhoto(media=FSInputFile(schedule_2)),
-        InputMediaPhoto(media=FSInputFile(strength), caption="💪 Силовая — Тренер Анна"),
-        InputMediaPhoto(media=FSInputFile(alena), caption="💪 Силовая — Тренер Алена"),
-    ]
-    await callback.message.answer_media_group(media=media)
+    text = "\n━━━━━━━━━━━━━━━━━━━\n".join(schedule_parts)
 
-    # Кнопки "Узнать больше о тренировке"
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="💪 Подробнее о Силовой", callback_data="info_strength")],
@@ -72,27 +64,62 @@ async def show_schedule(callback: CallbackQuery):
             [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_studio")]
         ]
     )
-    await callback.message.answer("Хочешь узнать больше о тренировке? 👇", reply_markup=keyboard)
+
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    except Exception:
+        await callback.message.delete()
+        await callback.message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
 
 
 @router.callback_query(F.data.startswith("info_"))
 async def show_training_info(callback: CallbackQuery):
-    """Показать фото конкретной тренировки"""
+    """Показать информацию о конкретной тренировке"""
     await callback.answer()
 
     training_type = callback.data.split("_")[1]
 
-    photos = {
-        'strength': 'strength.jpeg',
-        'barre': 'barre.jpeg',
-        'pilates': 'pilates.jpeg',
+    training_details = {
+        'strength': {
+            'emoji': '💪',
+            'name': 'СИЛОВАЯ ТРЕНИРОВКА',
+            'description': (
+                'Работа с весами, укрепление всех групп мышц.\n\n'
+                '👩‍🏫 *Тренер Анна:*\n'
+                'ПН, СР: Группа 1 — 8:30, Группа 2 — 17:10, Группа 3 — 18:10\n'
+                'ПТ: Группа 1 — 8:30, Группа 2, 3 — 17:10\n\n'
+                '👩‍🏫 *Тренер Алена:*\n'
+                'ПН — 19:10, 20:10\n'
+                'СР — 19:10, 20:10\n'
+                'ПТ — 19:10'
+            ),
+        },
+        'barre': {
+            'emoji': '🩰',
+            'name': 'БАРРЕ',
+            'description': (
+                'Многофункциональная тренировка в стиле балета.\n\n'
+                '👩‍🏫 *Тренер Анна:*\n'
+                'ВТ, ЧТ — 8:30\n'
+                'СБ — 10:00'
+            ),
+        },
+        'pilates': {
+            'emoji': '🧘',
+            'name': 'ПИЛАТЕС + РАСТЯЖКА',
+            'description': (
+                'Укрепление кора, гибкость, работа с МФР роллом и досками Садху.\n\n'
+                '👩‍🏫 *Тренер Анна:*\n'
+                'ПН, СР, ПТ — 9:30'
+            ),
+        },
     }
 
-    filename = photos.get(training_type)
-    if not filename:
+    info = training_details.get(training_type)
+    if not info:
         return
 
-    photo_path = os.path.join(SCHEDULE_IMAGES_DIR, filename)
+    text = f"{info['emoji']} *{info['name']}*\n\n{info['description']}"
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -103,11 +130,11 @@ async def show_training_info(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.delete()
-    await callback.message.answer_photo(
-        photo=FSInputFile(photo_path),
-        reply_markup=keyboard
-    )
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    except Exception:
+        await callback.message.delete()
+        await callback.message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
 
 
 @router.callback_query(F.data == "studio_location")

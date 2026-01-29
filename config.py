@@ -75,6 +75,39 @@ def save_prices():
 
 load_prices()
 
+# Расписание
+SCHEDULE = {
+    "monday": "🔘 *ПОНЕДЕЛЬНИК*\n\n🏃‍♀️ *Силовые тренировки*\n👩‍🏫 Тренер Анна:\n✅ Группа 1 — 8:30\n✅ Группа 2 — 17:10\n✅ Группа 3 — 18:10\n👩‍🏫 Тренер Алена:\n✅ 19:10\n✅ 20:10\n\n🧘‍♀️ *Пилатес*\n✅ 9:30 - Анна",
+    "tuesday": "🔘 *ВТОРНИК*\n\n🏃‍♀️ *Барре*\n✅ 8:30 - Анна",
+    "wednesday": "🔘 *СРЕДА*\n\n🏃‍♀️ *Силовые тренировки*\n👩‍🏫 Тренер Анна:\n✅ Группа 1 — 8:30\n✅ Группа 2 — 17:10\n✅ Группа 3 — 18:10\n👩‍🏫 Тренер Алена:\n✅ 19:10\n✅ 20:10\n\n🧘‍♀️ *Пилатес*\n✅ 9:30 - Анна",
+    "thursday": "🔘 *ЧЕТВЕРГ*\n\n🏃‍♀️ *Барре*\n✅ 8:30 - Анна",
+    "friday": "🔘 *ПЯТНИЦА*\n\n🏃‍♀️ *Силовые тренировки*\n👩‍🏫 Тренер Анна:\n✅ Группа 1 — 8:30\n✅ Группа 2, 3 — 17:10\n👩‍🏫 Тренер Алена:\n✅ 19:10\n\n🧘‍♀️ *Пилатес*\n✅ 9:30 - Анна",
+    "saturday": "🔘 *СУББОТА*\n\n🏃‍♀️ *Барре*\n✅ 10:00 - Анна",
+    "sunday": "🔘 *ВОСКРЕСЕНЬЕ*\n\n🌴 Выходной день\nВосстанавливаемся и набираемся сил! 💪",
+}
+
+SCHEDULE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'schedule.json')
+
+
+def load_schedule():
+    """Загрузить расписание из JSON-файла поверх дефолтов"""
+    if os.path.exists(SCHEDULE_FILE):
+        try:
+            with open(SCHEDULE_FILE, 'r', encoding='utf-8') as f:
+                saved = json.load(f)
+            SCHEDULE.update(saved)
+        except (json.JSONDecodeError, IOError):
+            pass
+
+
+def save_schedule():
+    """Сохранить текущее расписание в JSON-файл"""
+    with open(SCHEDULE_FILE, 'w', encoding='utf-8') as f:
+        json.dump(SCHEDULE, f, ensure_ascii=False, indent=2)
+
+
+load_schedule()
+
 # База данных
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_URL = os.getenv('DATABASE_URL', f'sqlite+aiosqlite:///{os.path.join(BASE_DIR, "bot.db")}')
