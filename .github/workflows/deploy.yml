@@ -66,6 +66,9 @@ jobs:
           script: |
             cd ${{ env.DEPLOY_PATH }}
 
+            # Обновление файлов проекта (docker-compose.yml и др.)
+            git pull origin main || true
+
             # Логин в container registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
