@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-from database import async_session, Payment, Subscription, User, get_all_clients, get_sales_stats, get_detailed_sales_stats, get_users_for_broadcast, get_today_bookings, mark_visit
+from database import async_session, Payment, Subscription, User, get_all_clients, get_sales_stats, get_detailed_sales_stats, get_users_for_broadcast, get_today_bookings, mark_visit, get_recent_payments, get_recent_bookings
 from utils.scheduler import schedule_menu_retry, schedule_video_funnel
 
 
@@ -102,7 +102,82 @@ async def admin_statistics(callback: CallbackQuery):
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
+            [InlineKeyboardButton(text="🛒 Покупки", callback_data="admin_purchases")],
+            [InlineKeyboardButton(text="📝 Записи на тренировки", callback_data="admin_bookings_list")],
             [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_admin")]
+        ]
+    )
+
+    await callback.message.edit_text(text, reply_markup=keyboard)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin_purchases")
+async def admin_purchases(callback: CallbackQuery):
+    """Последние покупки"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("❌ Доступ запрещён", show_alert=True)
+        return
+
+    type_names = {
+        'one_group': 'Абонемент (одна группа)',
+        'all_groups': 'Абонемент (все группы)',
+        'single': 'Разовое занятие',
+        'menu': 'Меню на похудение',
+        'menu_1200_week': 'Меню 1200 ккал (неделя)',
+        'menu_1200_month': 'Меню 1200 ккал (месяц)',
+        'menu_1500_week': 'Меню 1500 ккал (неделя)',
+        'menu_1500_month': 'Меню 1500 ккал (месяц)',
+        'menu_drying_week': 'Меню на сушку (неделя)',
+        'menu_drying_month': 'Меню на сушку (месяц)',
+        'plan': 'План тренировок',
+        'video': 'Онлайн-тренировка',
+        'mentoring': 'Наставничество',
+    }
+
+    payments = await get_recent_payments(15)
+
+    if not payments:
+        text = "🛒 ПОСЛЕДНИЕ ПОКУПКИ\n\nПока нет подтверждённых покупок."
+    else:
+        text = "🛒 ПОСЛЕДНИЕ ПОКУПКИ\n\n"
+        for p in payments:
+            username = f" (@{p['username']})" if p['username'] else ""
+            product = type_names.get(p['payment_type'], p['payment_type'] or 'Другое')
+            date_str = p['created_at'].strftime('%d.%m') if p['created_at'] else ''
+            text += f"• {p['name']}{username} — {product} — {int(p['amount'])}₽ — {date_str}\n"
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_stats")]
+        ]
+    )
+
+    await callback.message.edit_text(text, reply_markup=keyboard)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin_bookings_list")
+async def admin_bookings_list_handler(callback: CallbackQuery):
+    """Последние записи на тренировки"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("❌ Доступ запрещён", show_alert=True)
+        return
+
+    bookings = await get_recent_bookings(15)
+
+    if not bookings:
+        text = "📝 ПОСЛЕДНИЕ ЗАПИСИ\n\nПока нет записей на тренировки."
+    else:
+        text = "📝 ПОСЛЕДНИЕ ЗАПИСИ\n\n"
+        for b in bookings:
+            username = f" (@{b['username']})" if b['username'] else ""
+            date_str = b['created_at'].strftime('%d.%m') if b['created_at'] else ''
+            text += f"• {b['name']}{username} → {b['training_name']} — {date_str}\n"
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_stats")]
         ]
     )
 
@@ -459,9 +534,9 @@ async def admin_confirm_payment(callback: CallbackQuery):
             )
             await callback.bot.send_message(
                 payment.user_id,
-                "✅ Абонемент активирован! Спасибо!\n\n"
-                "Запишись на ближайшую тренировку, а для лучшего результата "
-                "попробуй меню питания или план тренировок 👇",
+                "✅ Абонемент активирован, спасибо!\n\n"
+                "Запишись на ближайшую тренировку. Для лучшего результата "
+                "может пригодиться меню питания или план тренировок 👇",
                 reply_markup=cross_sell_kb
             )
 
@@ -474,9 +549,9 @@ async def admin_confirm_payment(callback: CallbackQuery):
             )
             await callback.bot.send_message(
                 payment.user_id,
-                "✅ Оплата разового занятия подтверждена! Спасибо!\n\n"
+                "✅ Оплата разового занятия подтверждена, спасибо!\n\n"
                 "Запишись на тренировку 👇\n"
-                "С абонементом выгоднее — от 3500₽/мес!",
+                "Посмотри, если интересно — с абонементом выгоднее",
                 reply_markup=cross_sell_kb
             )
 
@@ -489,19 +564,26 @@ async def admin_confirm_payment(callback: CallbackQuery):
             )
             await callback.bot.send_message(
                 payment.user_id,
-                "✅ Оплата плана подтверждена! Спасибо!\n\n"
-                "Пришлю индивидуальный план в течение 24 часов.\n"
-                "Для максимального результата добавь меню питания 👇",
+                "✅ Оплата плана подтверждена, спасибо!\n\n"
+                "Скоро свяжусь с тобой и составим план под тебя.\n"
+                "Для лучшего результата может пригодиться меню питания 👇",
                 reply_markup=cross_sell_kb
             )
 
         elif payment.payment_type == 'video':
+            cross_sell_kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="📋 Меню питания", callback_data="online_menu")],
+                    [InlineKeyboardButton(text="💪 План тренировок", callback_data="online_plan")],
+                    [InlineKeyboardButton(text="👥 Наставничество", callback_data="online_mentoring")],
+                ]
+            )
             await callback.bot.send_message(
                 payment.user_id,
-                "✅ Оплата онлайн-тренировки подтверждена! Спасибо!\n\n"
-                "В течение часа пришлю всю информацию по тренировке "
-                "и согласуем удобное время.\n\n"
-                "Готовься к крутому занятию! 💪"
+                "✅ Оплата онлайн-тренировки подтверждена, спасибо!\n\n"
+                "Скоро свяжусь с тобой и согласуем удобное время.\n\n"
+                "А пока посмотри, если интересно 👇",
+                reply_markup=cross_sell_kb
             )
             # Запускаем воронку follow-up сообщений
             schedule_video_funnel(callback.bot, payment.user_id)
@@ -509,15 +591,16 @@ async def admin_confirm_payment(callback: CallbackQuery):
         elif payment.payment_type == 'mentoring':
             cross_sell_kb = InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [InlineKeyboardButton(text="💎 Абонемент", callback_data="studio_subscription")],
-                    [InlineKeyboardButton(text="📝 Записаться на тренировку", callback_data="book_start")],
+                    [InlineKeyboardButton(text="📋 Меню питания", callback_data="online_menu")],
+                    [InlineKeyboardButton(text="🔄 До и после", callback_data="before_after")],
+                    [InlineKeyboardButton(text="🙋‍♀️ Обо мне", callback_data="about_me")],
                 ]
             )
             await callback.bot.send_message(
                 payment.user_id,
-                "✅ Оплата наставничества подтверждена! Спасибо!\n\n"
-                "Свяжусь с тобой для начала работы.\n"
-                "Добавь абонемент для групповых тренировок в студии 👇",
+                "✅ Оплата наставничества подтверждена, спасибо!\n\n"
+                "Скоро свяжусь с тобой для начала работы.\n\n"
+                "А пока посмотри, может пригодиться 👇",
                 reply_markup=cross_sell_kb
             )
 
@@ -525,7 +608,7 @@ async def admin_confirm_payment(callback: CallbackQuery):
             # Для меню — базовое подтверждение, cross-sell после PDF
             await callback.bot.send_message(
                 payment.user_id,
-                "✅ Оплата меню подтверждена! Спасибо!\n\n"
+                "✅ Оплата меню подтверждена, спасибо!\n\n"
                 "Отправляю файл..."
             )
 
@@ -535,12 +618,6 @@ async def admin_confirm_payment(callback: CallbackQuery):
                 "✅ Твоя оплата подтверждена! Спасибо!",
             )
 
-        # Восстанавливаем нижнюю клавиатуру
-        await callback.bot.send_message(
-            payment.user_id,
-            "Выбирай, что тебя интересует 👆",
-            reply_markup=main_keyboard()
-        )
     except Exception as e:
         import logging
         logging.error(f"Ошибка уведомления пользователя: {e}")
@@ -610,13 +687,12 @@ async def admin_confirm_payment(callback: CallbackQuery):
             menu_cross_sell_kb = InlineKeyboardMarkup(
                 inline_keyboard=[
                     [InlineKeyboardButton(text="💪 План тренировок", callback_data="online_plan")],
-                    [InlineKeyboardButton(text="💎 Абонемент", callback_data="studio_subscription")],
+                    [InlineKeyboardButton(text="👥 Наставничество", callback_data="online_mentoring")],
                 ]
             )
             await callback.bot.send_message(
                 payment.user_id,
-                "Для максимального результата добавь план тренировок "
-                "или абонемент на групповые занятия 👇",
+                "Для лучшего результата питание хорошо дополнить тренировками 👇",
                 reply_markup=menu_cross_sell_kb
             )
         except Exception as e:
@@ -651,7 +727,9 @@ async def admin_reject_payment(callback: CallbackQuery):
             try:
                 await callback.bot.send_message(
                     payment.user_id,
-                    f"❌ Оплата не подтверждена. Свяжись с администратором: {config.ADMIN_PHONE}",
+                    "К сожалению, оплата не прошла 😔\n\n"
+                    "Не переживай — такое бывает! Попробуй оплатить ещё раз, "
+                    "и если что-то не получится, мы обязательно поможем 🤗",
                     reply_markup=main_keyboard()
                 )
             except Exception as e:

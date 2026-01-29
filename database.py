@@ -553,6 +553,51 @@ async def get_today_bookings():
         return list(grouped.values())
 
 
+async def get_recent_payments(limit: int = 15):
+    """Последние подтверждённые платежи с именами пользователей"""
+    async with async_session() as session:
+        result = await session.execute(
+            select(Payment, User)
+            .join(User, Payment.user_id == User.user_id)
+            .where(Payment.status == 'confirmed')
+            .order_by(Payment.created_at.desc())
+            .limit(limit)
+        )
+        rows = result.all()
+        return [
+            {
+                'name': row.User.name or 'Без имени',
+                'username': row.User.username,
+                'amount': row.Payment.amount,
+                'payment_type': row.Payment.payment_type,
+                'created_at': row.Payment.created_at,
+            }
+            for row in rows
+        ]
+
+
+async def get_recent_bookings(limit: int = 15):
+    """Последние записи на тренировки с именами пользователей"""
+    async with async_session() as session:
+        result = await session.execute(
+            select(Booking, User, Training)
+            .join(User, Booking.user_id == User.user_id)
+            .join(Training, Booking.training_id == Training.id)
+            .order_by(Booking.created_at.desc())
+            .limit(limit)
+        )
+        rows = result.all()
+        return [
+            {
+                'name': row.User.name or 'Без имени',
+                'username': row.User.username,
+                'training_name': row.Training.name,
+                'created_at': row.Booking.created_at,
+            }
+            for row in rows
+        ]
+
+
 async def mark_visit(booking_id: int, user_id: int, training_id: int):
     """Отметить посещение: создаёт Visit, ставит booking.status='completed'"""
     async with async_session() as session:
