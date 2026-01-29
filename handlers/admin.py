@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from database import async_session, Payment, Subscription, User, get_all_clients, get_sales_stats, get_detailed_sales_stats, get_users_for_broadcast, get_today_bookings, mark_visit
-from utils.scheduler import schedule_menu_retry
+from utils.scheduler import schedule_menu_retry, schedule_video_funnel
 
 
 class BroadcastStates(StatesGroup):
@@ -76,7 +76,7 @@ async def admin_statistics(callback: CallbackQuery):
         'menu_drying_week': 'Меню на сушку (неделя)',
         'menu_drying_month': 'Меню на сушку (месяц)',
         'plan': 'План тренировок',
-        'video_call': 'Онлайн-тренировка',
+        'video': 'Онлайн-тренировка',
         'mentoring': 'Наставничество',
         'other': 'Другое'
     }
@@ -495,20 +495,16 @@ async def admin_confirm_payment(callback: CallbackQuery):
                 reply_markup=cross_sell_kb
             )
 
-        elif payment.payment_type == 'video_call':
-            cross_sell_kb = InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(text="💎 Абонемент", callback_data="studio_subscription")],
-                    [InlineKeyboardButton(text="💪 План тренировок", callback_data="online_plan")],
-                ]
-            )
+        elif payment.payment_type == 'video':
             await callback.bot.send_message(
                 payment.user_id,
                 "✅ Оплата онлайн-тренировки подтверждена! Спасибо!\n\n"
-                "Свяжусь с тобой для согласования времени.\n"
-                "Хочешь тренироваться регулярно? Посмотри абонемент 👇",
-                reply_markup=cross_sell_kb
+                "В течение часа пришлю всю информацию по тренировке "
+                "и согласуем удобное время.\n\n"
+                "Готовься к крутому занятию! 💪"
             )
+            # Запускаем воронку follow-up сообщений
+            schedule_video_funnel(callback.bot, payment.user_id)
 
         elif payment.payment_type == 'mentoring':
             cross_sell_kb = InlineKeyboardMarkup(
